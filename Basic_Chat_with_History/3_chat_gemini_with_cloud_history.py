@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from google.cloud import firestore
 from langchain_google_firestore import FirestoreChatMessageHistory
-from all_common_prompts import *
 
 load_dotenv()
 api_key = os.getenv('GOOGLE_API_KEY')
