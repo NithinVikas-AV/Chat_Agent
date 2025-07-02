@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from google.cloud import firestore
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_google_firestore import FirestoreChatMessageHistory
 
 load_dotenv()
@@ -29,6 +30,7 @@ chat_history = FirestoreChatMessageHistory(
     collection=COLLECTION_NAME,
     client=client,
 )
+
 print("Chat History Initialized.")
 
 print("\n\nStart chatting with the AI. Type 'exit' to quit.\n")
