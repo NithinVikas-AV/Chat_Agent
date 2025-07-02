@@ -1,0 +1,8 @@
+langchain
+langchain-google-genai
+dotenv
+langchain-google-firestore
+pymupdf
+faiss-cpu
+sentence-transformers
+langchain-huggingface
