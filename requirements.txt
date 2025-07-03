@@ -1,8 +1,10 @@
 langchain
+langchain-community
+langchain-core
+langchain-huggingface
 langchain-google-genai
-dotenv
 langchain-google-firestore
-pymupdf
 faiss-cpu
 sentence-transformers
-langchain-huggingface
+google-cloud-firestore
+dotenv
