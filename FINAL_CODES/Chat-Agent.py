@@ -10,6 +10,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import Tool
+from langchain_core.documents import Document
 from langchain.memory import ConversationBufferMemory
 from langchain_google_firestore import FirestoreChatMessageHistory
 from google.cloud import firestore
@@ -92,7 +93,7 @@ def create_rag_chain():
         " ** You can Refer the chat history if the retrieved context is not related to the question. **"
         " If you don't know the answer, just say that you "
         "don't know. Use three sentences maximum and keep the answer "
-        "concise."
+        "concise. Also Mention the source of the context if you took from the relevant data."
         "\n\n"
         "{context}"
     )
