@@ -2,7 +2,6 @@ import os
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import FAISS
-from langchain_core.documents import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyMuPDFLoader
 
