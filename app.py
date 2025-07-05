@@ -18,6 +18,8 @@ from google.cloud import firestore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_community.document_loaders import TextLoader
+import pdfkit
+from serpapi import GoogleSearch
 
 app = Flask(__name__)
 
@@ -27,6 +29,7 @@ api_key = os.getenv("GOOGLE_API_KEY")
 project_id = os.getenv("PROJECT_ID")
 collection_name = os.getenv("collection_name")
 session_id = os.getenv("SESSION_ID")
+serpapi_key = os.getenv("SERPAPI_KEY")
 
 # Initialize directories and embeddings
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -119,7 +122,6 @@ memory.chat_memory.add_message(SystemMessage(content=initial_system_message))
 for msg in firestore_history.messages:
     if not isinstance(msg, SystemMessage):
         memory.chat_memory.add_message(msg)
-firestore_history.clear()
 
 # Initialize FAISS
 ensure_faiss_db_exists()
@@ -175,15 +177,52 @@ def create_rag_chain():
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
     return rag_chain
 
+config = pdfkit.configuration(wkhtmltopdf=r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe')
+
 def export_chat(_, **kwargs):
     chat_text = "\n".join(
         f"{'You' if isinstance(m, HumanMessage) else 'AI'}: {m.content}"
         for m in memory.chat_memory.messages
     )
-    export_path = os.path.join(current_dir, "chat_history.txt")
-    with open(export_path, "w", encoding="utf-8") as f:
-        f.write(chat_text)
-    return "Conversation exported to chat_history.txt."
+    export_path = os.path.join(current_dir, "chat_history.pdf")
+    # Convert newlines to <br> for better formatting in PDF
+    html_content = chat_text.replace("\n", "<br>")
+    pdfkit.from_string(html_content, export_path, configuration=config)
+    # Return a URL the frontend can use to download
+    return f"Chat exported successfully! Download it by clicking the download chats button."
+
+def web_search(query, **kwargs):
+    """Uses SerpAPI to search Google and returns a summarized result."""
+    params = {
+        "engine": "google",
+        "q": query,
+        "api_key": serpapi_key,
+        "num": 3,
+    }
+    
+    search = GoogleSearch(params)
+    results = search.get_dict()
+    
+    if "error" in results:
+        return f"SerpAPI error: {results['error']}"
+    
+    organic_results = results.get("organic_results", [])
+    if not organic_results:
+        return "No relevant search results found."
+    
+    combined_text = ""
+    for res in organic_results:
+        title = res.get("title", "")
+        snippet = res.get("snippet", "")
+        link = res.get("link", "")
+        combined_text += f"Title: {title}\nSnippet: {snippet}\nLink: {link}\n\n"
+    
+    summary = llm.invoke([
+        SystemMessage(content="Summarize the following web search results briefly:"),
+        HumanMessage(content=combined_text)
+    ]).content
+    
+    return summary
 
 rag_chain = create_rag_chain()
 
@@ -206,8 +245,14 @@ tools = [
     Tool(
         name="Export Chat",
         func=export_chat,
-        description="Exports the current chat to a local text file."
+        description="Exports the current chat history to a downloadable PDF file."
+    ),
+    Tool(
+        name="Search Web",
+        func=web_search,
+        description="Use this to search the web for recent or unknown information and return a brief summary."
     )
+
 ]
 
 react_docstore_prompt = hub.pull("hwchase17/react")
@@ -220,7 +265,7 @@ agent_executor = AgentExecutor.from_agent_and_tools(
     agent=agent,
     tools=tools,
     verbose=True,
-    memory=memory,
+    # memory=memory,
     handle_parsing_errors=True,
 )
 
@@ -238,11 +283,9 @@ def handle_chat():
     
     try:
         memory.chat_memory.add_message(HumanMessage(content=query))
-        firestore_history.add_user_message(query)
         response = agent_executor.invoke({"input": query})
         output = response["output"]
         memory.chat_memory.add_message(AIMessage(content=output))
-        firestore_history.add_ai_message(output)
         
         return jsonify({'output': output})
     except Exception as e:
@@ -274,5 +317,26 @@ def handle_upload():
 def serve_voice_chat():
     return render_template('voice_chat.html')
 
+@app.route('/download/chat_history.pdf')
+def download_chat_history():
+    file_path = os.path.join(current_dir, 'chat_history.pdf')
+    return send_file(file_path, as_attachment=True)
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    try:
+        app.run(debug=True)
+    except KeyboardInterrupt:
+        print("\n[INFO] KeyboardInterrupt received. Saving chat history to Firestore...")
+
+        firestore_history.clear()
+
+        for msg in memory.chat_memory.messages:
+            if isinstance(msg, HumanMessage):
+                firestore_history.add_user_message(msg.content)
+            elif isinstance(msg, AIMessage):
+                firestore_history.add_ai_message(msg.content)
+            elif isinstance(msg, SystemMessage):
+                # Optional: save system messages too
+                firestore_history.add_ai_message(msg.content)
+
+        print("[INFO] Chat history saved successfully. Goodbye!")
