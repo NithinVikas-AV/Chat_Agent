@@ -183,6 +183,34 @@
         body.light-mode #controls-container {
             color: black;
         }
+
+        .utility-button {
+            position: fixed;
+            left: 20px;         /* distance from left edge */
+            font-size: 14px;
+            padding: 10px 16px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 9999;
+            }
+
+            /* First button: Switch Voice Mode */
+            #toggleVoiceMode {
+            top: 20px;          /* distance from top edge */
+            }
+
+            /* Second button: Download Chat, right below the first one */
+            #downloadChatBtn {
+            top: 70px;          /* place it ~50px below the first button */
+            }
+
+            .utility-button:hover {
+            background-color: #45a049;
+        }
+
     </style>
 </head>
 
@@ -190,6 +218,7 @@
     <canvas id="background-canvas"></canvas>
     <div id="theme-toggle">🌙</div>
     <button onclick="window.location.href='/'" class="back-button">⌨️ Switch to Text Chat</button>
+    <button id="downloadChatBtn" class="utility-button">📥 Download Chat History</button>
     <div id="wrapper">
         <header>Voice Chat Agent</header>
         <div id="chat-container">
@@ -572,6 +601,26 @@
         }
 
         draw();
+
+        function addMessage(content, role) {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `message ${role === 'user' ? 'user-message' : 'assistant-message'}`;
+
+                msgDiv.textContent = `${role === 'user' ? 'You' : 'Assistant'}: ${content}`;
+                chatBox.appendChild(msgDiv);
+                chatBox.scrollTop = chatBox.scrollHeight;
+                setTimeout(() => msgDiv.classList.add('show'), 10);
+
+                // 🚨 Automatically trigger download if response contains the download link
+                if (role !== 'user' && content.includes('/api/download_chat')) {
+                    setTimeout(() => {
+                        window.location.href = '/api/download_chat';
+                    }, 500);  // small delay to let the chat update visually
+                }
+            }
+            document.getElementById('downloadChatBtn').addEventListener('click', () => {
+                    window.location.href = '/download/chat_history.pdf';
+            });
     </script>
 </body>
 
