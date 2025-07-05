@@ -192,19 +192,22 @@
         }
 
         .voice-button {
-            background-color: #007bff;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: linear-gradient(90deg, #4aa8ff, #a06bff, #ff6fa9); /* unified gradient */
             color: white;
             border: none;
-            padding: 10px 16px;
-            font-size: 14px;
-            border-radius: 8px;
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-size: 16px;
             cursor: pointer;
-            margin: 10px;
-            transition: transform 0.2s ease, background-color 0.2s ease;
+            transition: transform 0.2s ease-in-out;
+            margin: 0; /* consistent spacing */
         }
 
         .voice-button:hover {
-            background-color: #0056b3;
             transform: scale(1.05);
         }
 
@@ -239,6 +242,32 @@
             color: rgba(0, 0, 0, 0.6);
         }
 
+        .utility-button {
+            position: fixed;
+            left: 20px;         /* distance from left edge */
+            font-size: 14px;
+            padding: 10px 16px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 9999;
+            }
+
+            /* First button: Switch Voice Mode */
+            #toggleVoiceMode {
+            top: 20px;          /* distance from top edge */
+            }
+
+            /* Second button: Download Chat, right below the first one */
+            #downloadChatBtn {
+            top: 70px;          /* place it ~50px below the first button */
+            }
+
+            .utility-button:hover {
+            background-color: #45a049;
+        }
 
     </style>
 </head>
@@ -248,6 +277,7 @@
     <div id="theme-toggle">🌙</div>
     <div id="wrapper">
         <button onclick="window.location.href='/voice'" class="voice-button fixed-voice-button">🎤 Switch to Voice Chat</button>
+        <button id="downloadChatBtn" class="utility-button">📥 Download Chat History</button>
         </header>
         <header>Chat Agent</header>
         <div id="chat-container">
@@ -700,6 +730,26 @@
                 toggle.style.transform = 'rotate(-360deg)';
             }
         });
+
+        function addMessage(content, role) {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `message ${role === 'user' ? 'user-message' : 'assistant-message'}`;
+
+                msgDiv.textContent = `${role === 'user' ? 'You' : 'Assistant'}: ${content}`;
+                chatBox.appendChild(msgDiv);
+                chatBox.scrollTop = chatBox.scrollHeight;
+                setTimeout(() => msgDiv.classList.add('show'), 10);
+
+                // 🚨 Automatically trigger download if response contains the download link
+                if (role !== 'user' && content.includes('/api/download_chat')) {
+                    setTimeout(() => {
+                        window.location.href = '/api/download_chat';
+                    }, 500);  // small delay to let the chat update visually
+                }
+            }
+            document.getElementById('downloadChatBtn').addEventListener('click', () => {
+                    window.location.href = '/download/chat_history.pdf';
+            });
     </script>
 </body>
 
