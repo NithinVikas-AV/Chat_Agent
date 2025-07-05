@@ -11,3 +11,5 @@ dotenv
 speechrecognition
 pyttsx3
 flask
+pdfkit
+google-search-results
